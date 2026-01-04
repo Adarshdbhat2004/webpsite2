@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get Total Employees</title>
+
+<style>
+body { font-family: Arial; background: #f9f9f9; padding: 30px; }
+h1 { text-align:center; color:#333; }
+.container { max-width:700px; margin:0 auto; background:#fff; padding:25px; border-radius:8px; box-shadow:0 0 15px rgba(0,0,0,0.1);}
+label { display:block; margin:12px 0 6px; font-weight:bold; }
+select, input[type="date"] { width:100%; padding:8px 10px; border-radius:5px; border:1px solid #ccc; font-size:16px; }
+button { margin-top:20px; padding:10px 18px; font-size:16px; background:#007bff; color:#fff; border:none; border-radius:6px; cursor:pointer; }
+button:hover { background:#0056b3; }
+table { width:100%; margin-top:25px; border-collapse:collapse; }
+th, td { padding:10px; border:1px solid #ccc; text-align:center; }
+th { background:#007bff; color:#fff; }
+#total { margin-top:15px; font-weight:bold; font-size:18px; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>Get Total Employees</h1>
+
+<label>ಆಳು:</label>
+<select id="vendor" onchange="showLast10()">
+  <option value="">--Select Vendor--</option>
+</select>
+
+<label>ಪ್ರಾರಂಭಿಕ ದಿನಾಂಕ:</label>
+<input type="date" id="fromDate">
+
+<label>ಕೊನೆಯ ದಿನಾಂಕ:</label>
+<input type="date" id="toDate">
+
+<button onclick="getTotal()">ಆಳುಗಳ ಒಟ್ಟು ಸಂಖ್ಯೆ</button>
+
+<table id="resultTable" style="display:none;">
+<thead>
+<tr>
+  <th>Date</th>
+  <th>Employee Count</th>
+  <th>Notes</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<div id="total"></div>
+</div>
+
+<script>
+const sheetUrl = 'https://script.google.com/macros/s/AKfycbyljqDn4ru89PWsk_YrtwwmGPM7tdCvQhKlvsrtS9tqBcHqxhmb0iPQEKRPrQpEORFf/exec';
+let sheetData = [];
+
+// Fetch Google Sheet data
+fetch(sheetUrl)
+  .then(res => res.json())
+  .then(data => {
+    sheetData = data.map(row => {
+      if (row['Date']) {
+        const d = new Date(row['Date']);
+        row['Date'] = d.getFullYear() + '-' +
+                      String(d.getMonth()+1).padStart(2,'0') + '-' +
+                      String(d.getDate()).padStart(2,'0');
+      }
+      return row;
+    });
+    populateVendors();
+  });
+
+// Populate vendor dropdown
+function populateVendors() {
+  const vendors = [...new Set(sheetData.map(row => row['Vendor']))];
+  const vendorSelect = document.getElementById('vendor');
+  vendors.forEach(v => {
+    const option = document.createElement('option');
+    option.value = v;
+    option.textContent = v;
+    vendorSelect.appendChild(option);
+  });
+}
+
+// ✅ SHOW LAST 10 ENTRIES ON VENDOR SELECT
+function showLast10() {
+  const vendor = document.getElementById('vendor').value;
+  if (!vendor) return;
+
+  const tbody = document.querySelector('#resultTable tbody');
+  tbody.innerHTML = '';
+
+  const rows = sheetData
+    .filter(r => r['Vendor'] === vendor)
+    .sort((a, b) => b['Date'].localeCompare(a['Date']))
+    .slice(0, 10);
+
+  rows.forEach(r => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${r['Date']}</td>
+        <td>${r['Employees']}</td>
+        <td>${r['Notes'] || ''}</td>
+      </tr>`;
+  });
+
+  document.getElementById('resultTable').style.display = rows.length ? 'table' : 'none';
+  document.getElementById('total').textContent = '';
+}
+
+// Get total employees (WITH NOTES)
+function getTotal() {
+  const vendor = document.getElementById('vendor').value;
+  const fromDate = document.getElementById('fromDate').value;
+  const toDate = document.getElementById('toDate').value;
+  const tbody = document.querySelector('#resultTable tbody');
+  tbody.innerHTML = '';
+
+  if (!vendor || !fromDate || !toDate) {
+    alert('Please select vendor and date range!');
+    return;
+  }
+
+  const filtered = sheetData.filter(row =>
+    row['Vendor'] === vendor &&
+    row['Date'] >= fromDate &&
+    row['Date'] <= toDate
+  );
+
+  const dateMap = {};
+  const notesMap = {};
+
+  filtered.forEach(row => {
+    const date = row['Date'];
+    const emp = parseInt(row['Employees']) || 0;
+    if (!dateMap[date]) {
+      dateMap[date] = 0;
+      notesMap[date] = [];
+    }
+    dateMap[date] += emp;
+    if (row['Notes']) notesMap[date].push(row['Notes']);
+  });
+
+  let total = 0;
+  Object.keys(dateMap).sort().forEach(date => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${date}</td>
+        <td>${dateMap[date]}</td>
+        <td>${notesMap[date].join(', ')}</td>
+      </tr>`;
+    total += dateMap[date];
+  });
+
+  document.getElementById('resultTable').style.display = Object.keys(dateMap).length ? 'table' : 'none';
+  document.getElementById('total').textContent = `Total Employees: ${total}`;
+}
+</script>
+
+</body>
+</html>

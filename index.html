@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gundape Farm - Employee Manager</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #f4f6f8;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 40px auto;
+      background: #fff;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    textarea {
+      resize: none;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .add-btn {
+      height: 38px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 10px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .submit-btn:disabled {
+      background: #999;
+      cursor: not-allowed;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🌾 ಗುಂಡಪ್ಪೆ</h1>
+  <p class="subtitle">Employee Management System</p>
+
+  <!-- Vendor -->
+  <div class="form-group">
+    <label>ಆಳಿನ ಹೆಸರು</label>
+    <div class="row">
+      <select id="vendor">
+        <option value="">ಆಳು ಹುಡುಕಿ</option>
+      </select>
+      <button class="add-btn" onclick="showVendorInput()">➕</button>
+    </div>
+  </div>
+
+  <!-- Add Vendor Box -->
+  <div class="form-group hidden" id="vendorBox">
+    <input type="text" id="newVendor" placeholder="Add New Vendor">
+    <button class="add-btn" onclick="addVendor()">Save</button>
+  </div>
+
+  <!-- Employees -->
+  <div class="form-group">
+    <label>ಆಳುಗಳ ಒಟ್ಟು ಸಂಖ್ಯೆ</label>
+    <input type="number" id="employees">
+  </div>
+
+  <!-- Date -->
+  <div class="form-group">
+    <label>ದಿನಾಂಕ</label>
+    <input type="date" id="date">
+  </div>
+
+  <!-- Notes -->
+  <div class="form-group">
+    <label>Notes</label>
+    <textarea id="notes" rows="3"></textarea>
+  </div>
+
+  <!-- Save -->
+  <button id="saveBtn" class="submit-btn" onclick="saveData()">Save Details</button>
+
+  <div style="margin-top:12px;"></div>
+
+  <!-- Get Total -->
+  <button class="submit-btn" onclick="goToTotal()">Get Total</button>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyI4Ghei2cIde9Lf8NxmoYJOGocd08acWc1P9XIx5CbPB5l1k9iZEgqHkzZyTc1jsiD/exec";
+
+// Load vendors
+window.onload = function () {
+  fetch(API_URL + "?action=getVendors")
+    .then(res => res.json())
+    .then(vendors => {
+      const select = document.getElementById("vendor");
+      select.innerHTML = '<option value="">ಆಳು ಹುಡುಕಿ</option>';
+      vendors.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.text = v;
+        select.add(opt);
+      });
+    });
+};
+
+function showVendorInput() {
+  document.getElementById("vendorBox").classList.remove("hidden");
+}
+
+function addVendor() {
+  const vendor = document.getElementById("newVendor").value.trim();
+  if (!vendor) {
+    alert("Enter vendor name");
+    return;
+  }
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "addVendor",
+      vendor: vendor
+    })
+  }).then(() => {
+    document.getElementById("newVendor").value = "";
+    document.getElementById("vendorBox").classList.add("hidden");
+    window.onload();
+  });
+}
+
+function saveData() {
+  const btn = document.getElementById("saveBtn");
+  btn.disabled = true;
+  btn.innerText = "Saving...";
+
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      action: "saveEmployee",
+      vendor: document.getElementById("vendor").value,
+      employees: document.getElementById("employees").value,
+      date: document.getElementById("date").value,
+      notes: document.getElementById("notes").value
+    })
+  }).then(() => {
+    btn.innerText = "Saved ✅";
+    setTimeout(() => {
+      btn.innerText = "Save Details";
+      btn.disabled = false;
+    }, 1200);
+  });
+}
+
+function goToTotal() {
+  window.location.href = "get-total.html";
+}
+</script>
+
+</body>
+</html>
